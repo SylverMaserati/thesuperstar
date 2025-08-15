@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galaxy Blaster 2.2</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: black; overflow: hidden; touch-action: none; }
+    canvas { display: block; }
+    #menu, #mainMenu, #cenarioMenu, #creditos, #gameOver, #configMenu, #shop, #inventory, #bossWarn, #bossResult, #challengesMenu {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
+      display: none; align-items: center; justify-content: center; flex-direction: column;
+      overflow-y: auto;
+    }
+    #bossWarn {
+      background: none !important;
+      color: red;
+      font-size: 36px;
+      font-family: Arial, sans-serif;
+      text-shadow: 0 0 12px #000, 0 0 30px #f00;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    #bossResult {
+      background: rgba(0,0,0,0.93);
+      color: #fff;
+      font-size: 28px;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      gap: 20px;
+      z-index: 101;
+    }
+    #bossResult .actions {
+      display: flex;
+      gap: 22px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+    #bossResult .actions img {
+      width: 140px;
+      cursor: pointer;
+      display: block;
+    }
+    #menu { display: flex; background: black; }
+    #menu .logo { width: min(60vw, 500px); height: auto; margin-bottom: 24px; }
+    #menu .start { width: 150px; cursor: pointer; display: block; }
+    #mainMenu { background: rgba(0,0,0,0.9); gap: 16px; padding: 32px 12px 48px; position: relative; }
+    #mainMenu .logo { width: 280px; height: auto; margin-bottom: 20px; display: block; }
+    #mainMenu .buttons { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+    #mainMenu .buttons img { width: 200px; height: auto; cursor: pointer; display: block; position:relative; }
+    #mainMenu .coinsTotal {
+      position: absolute; top: 10px; right: 10px; display: flex; align-items: center; gap: 8px;
+      color: #fff; font-family: Arial, sans-serif; text-shadow: 0 1px 2px #000;
+    }
+    #mainMenu .coinsTotal img { width: 24px; height: 24px; }
+    #configBtn { position: absolute; top: 10px; left: 10px; width: 50px; cursor: pointer; z-index: 15; display: none; }
+    #cenarioMenu { background: rgba(0,0,0,0.95); padding: 20px 10px; gap: 14px; align-items: stretch;}
+    .cenariosWrap { width: min(100%, 980px); max-height: calc(100% - 180px); overflow-y: auto; margin: 0 auto;}
+    #cenarioMenu .cenarios-title { color: orange; font-family: Arial, sans-serif; font-size: 22px; margin: 12px 0 10px 0; text-align: center; }
+    #cenarioMenu .cenarios {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; justify-items: center;
+      margin-bottom: 12px;
+    }
+    #cenarioMenu img[data-cenario] {
+      width: 160px; height: 290px; cursor: pointer; border: 3px solid white; box-sizing: border-box; object-fit: cover; background: #222;
+    }
+    #cenarioMenu img[data-cenario][data-type="pc"] { width: 290px; height: 160px; }
+    #cenarioMenu img.selected { border: 4px solid orange !important; }
+    #cenarioStart { display: flex; gap: 16px; align-items: center; justify-content: center; }
+    #cenarioStart img { width: 150px; cursor: pointer; display: block; }
+    #creditos { color: orange; font-size: 24px; font-family: Arial, sans-serif; justify-content: center; background: rgba(0,0,0,0.8); gap: 14px; padding: 20px; }
+    #creditos .voltar { width: 110px; cursor: pointer; display: block; }
+    #hud {
+      position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+      z-index: 30; color: white; font-family: Arial, sans-serif; font-size: 16px; text-shadow: 0 1px 2px #000;
+      display: none; gap: 16px; align-items: center; justify-content: center;
+    }
+    #score, #kills { display: none; }
+    #lives { display: flex; gap: 6px; align-items: center; }
+    #lives img { width: 28px; height: 28px; }
+    #coinsHUD { display: flex; align-items: center; gap: 6px; }
+    #coinsHUD img { width: 22px; height: 22px; }
+    #shop { background: rgba(0,0,0,0.9); color: #fff; font-family: Arial, sans-serif; gap: 12px; padding: 16px 12px 24px; }
+    #shop .title { font-size: 22px; margin-bottom: 8px; }
+    #shop .coins { position: sticky; top: 10px; align-self: flex-end; margin-right: 12px; display: flex; align-items: center; gap: 6px; }
+    #shop .coins img { width: 18px; height: 18px; }
+    #shop .gridWrap { width: min(100%, 980px); max-height: 480px; overflow-y: auto; touch-action: pan-y;}
+    #shop .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    #shop .card { border: 1px solid #444; border-radius: 10px; padding: 10px; background: #111; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    #shop .card img.ship { width: 160px; height: auto; }
+    #shop .price { display: flex; align-items: center; gap: 6px; }
+    #shop .price img { width: 16px; height: 16px; }
+    #shop .actions { margin-top: 4px; }
+    #shop .actions img { width: 130px; cursor: pointer; display: block; }
+    #shop .locked-info { color: orange; font-weight: bold; margin-top: 4px; text-align: center; }
+    #shop .footer { margin-top: 10px; }
+    #inventory { background: rgba(0,0,0,0.92); color: #fff; font-family: Arial, sans-serif; gap: 12px; padding: 16px 12px 24px; }
+    #inventory .title { font-size: 22px; }
+    #inventory .gridWrap { width: min(100%, 980px); max-height: 480px; overflow-y: auto; touch-action: pan-y;}
+    #inventory .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    #inventory .card { border: 1px solid #444; border-radius: 10px; padding: 10px; background: #111; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    #inventory .card img.ship { width: 160px; height: auto; }
+    #inventory .actions img { width: 130px; cursor: pointer; display: block; }
+    #inventory .footer { margin-top: 10px; }
+    #gameOver { display: none; align-items: center; justify-content: center; }
+    #gameOver .box {
+      width: 320px; height: 340px; padding: 16px; background: url('sla.png') no-repeat center/contain;
+      border: 2px solid #fff; box-shadow: 0 0 12px rgba(255,255,255,.25);
+      display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+      color: #fff; font-family: Arial, sans-serif; text-shadow: 0 1px 2px #000; gap: 8px; box-sizing: border-box;
+    }
+    #gameOver .box .stats { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    #gameOver .box .actions { display: flex; gap: 12px; }
+    #gameOver .box .actions img { width: 140px; cursor: pointer; display: block; }
+    #configMenu { z-index: 20; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); }
+    #configBox {
+      width: 320px; height: 340px; padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+      background: url('sla.png') no-repeat center/contain; gap: 8px; box-sizing: border-box;
+    }
+    .config-options { display: flex; gap: 24px; margin-top: 10px; }
+    .config-item { display: flex; flex-direction: column; align-items: center; color: white; font-family: Arial, sans-serif; font-size: 14px; text-shadow: 0 1px 2px #000; }
+    .config-item img { width: 40px; height: 40px; margin-bottom: 4px; cursor: pointer; display: block; }
+    #creditosBtnImg { width: 110px; cursor: pointer; display: block; }
+    .config-actions { display: flex; gap: 12px; align-items: center; justify-content: center; margin-bottom: 10px; }
+    .config-actions img { width: 120px; cursor: pointer; display: block; }
+    .btn-voltar-pequeno { width: 110px; cursor: pointer; display: block; }
+
+    /* Desafios */
+    #challengesMenu { background: rgba(0,0,0,0.92); z-index: 30; }
+    #challengesMenu img { margin-bottom: 18px; }
+    #lockChallenges {display:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size:38px; color:#fff; pointer-events:none;}
+    #mainMenu .buttons .challengesWrap {position:relative; display:flex; align-items:center; justify-content:center;}
+  </style>
+</head>
+<body>
+  <div id="menu">
+    <img class="logo" src="logo.png" alt="Logo">
+    <img class="start" src="start.png" id="toMainMenu" alt="Start">
+  </div>
+  <div id="mainMenu">
+    <div class="coinsTotal"><img src="moeda.png" alt="Moedas"><span id="mainMenuCoins">0</span></div>
+    <img class="logo" src="logo.png" alt="Logo">
+    <div class="buttons">
+      <img src="start.png" id="goScenario" alt="Jogar">
+      <img src="loja.png" id="openShop" alt="Loja">
+      <img src="naves.png" id="openInventory" alt="Naves">
+      <div class="challengesWrap" style="width:200px; height:48px; position:relative;">
+        <img src="desafios.png" id="openChallenges" alt="Desafios" style="width:200px;">
+        <span id="lockChallenges">🔒</span>
+      </div>
+      <img src="credits.png" id="openCredits" alt="Créditos">
+    </div>
+  </div>
+  <div id="cenarioMenu">
+    <div class="cenariosWrap">
+      <div class="cenarios-title">Cenários Celular</div>
+      <div class="cenarios" id="cenarios-celular">
+        <img src="cenario.png"  data-cenario="cenario.png"  alt="Cenário Celular 1" data-type="celular">
+        <img src="cenario1.png" data-cenario="cenario1.png" alt="Cenário Celular 2" data-type="celular">
+        <img src="cenario2.png" data-cenario="cenario2.png" alt="Cenário Celular 3" data-type="celular">
+      </div>
+      <div class="cenarios-title">Cenários PC</div>
+      <div class="cenarios" id="cenarios-pc">
+        <img src="wpc.png"  data-cenario="wpc.png"  alt="Cenário PC 1" data-type="pc">
+        <img src="wpc1.png" data-cenario="wpc1.png" alt="Cenário PC 2" data-type="pc">
+        <img src="wpc2.png" data-cenario="wpc2.png" alt="Cenário PC 3" data-type="pc">
+      </div>
+    </div>
+    <div id="cenarioStart">
+      <img src="start.png" id="startFromCenario" alt="Jogar">
+      <img src="voltar.png" class="btn-voltar-pequeno" id="cenarioBack" alt="Voltar">
+    </div>
+  </div>
+  <div id="creditos">
+    <div style="font-size:26px;">Feito por <b style="color:orange;">Sylver Maserati</b></div>
+    <img class="voltar btn-voltar-pequeno" src="voltar.png" id="creditosVoltar" alt="Voltar">
+  </div>
+  <div id="hud">
+    <div id="score">Score: 0</div>
+    <div id="kills">Kills: 0</div>
+    <div id="coinsHUD"><img src="moeda.png" alt="Moeda"><span id="coinsCount">0</span></div>
+    <div id="lives"></div>
+  </div>
+  <img src="butao.png" id="configBtn" alt="Config">
+  <div id="configMenu">
+    <div id="configBox">
+      <div class="config-options">
+        <div class="config-item">
+          <img src="som1.png" id="toggleMusic" title="Música">
+          <span>Som</span>
+        </div>
+        <div class="config-item">
+          <img src="efeitos.png" id="toggleEffects" title="Efeitos Sonoros">
+          <span>Efeitos Sonoros</span>
+        </div>
+      </div>
+      <img src="credits.png" id="creditosBtnImg" title="Créditos">
+      <div class="config-actions">
+        <img src="continuar.png" id="configContinue" alt="Continuar">
+        <img src="menu.png" id="configToMenu" alt="Menu Principal">
+      </div>
+    </div>
+  </div>
+  <div id="gameOver">
+    <div class="box">
+      <div class="stats">
+        <div id="finalScore">Score: 0</div>
+        <div id="finalKills">Kills: 0</div>
+      </div>
+      <div class="actions">
+        <img id="tryAgain" src="novamente.png" alt="Tente Novamente">
+        <img id="goMenuFromOver" src="menu.png" alt="Menu Principal">
+      </div>
+    </div>
+  </div>
+  <div id="bossWarn"></div>
+  <div id="bossResult"></div>
+  <div id="shop">
+    <div class="coins"><img src="moeda.png" alt="Moeda"><span id="shopCoins">0</span></div>
+    <div class="title">Loja de Naves</div>
+    <div class="gridWrap"><div class="grid" id="shopGrid"></div></div>
+    <div class="footer"><img src="voltar.png" class="btn-voltar-pequeno" id="closeShop" alt="Voltar"></div>
+  </div>
+  <div id="inventory">
+    <div class="title">Inventário de Naves</div>
+    <div class="gridWrap"><div class="grid" id="inventoryGrid"></div></div>
+    <div class="footer"><img src="voltar.png" class="btn-voltar-pequeno" id="closeInventory" alt="Voltar"></div>
+  </div>
+  <div id="challengesMenu">
+    <img src="desafio1.png" id="startDesafio1" style="width:220px; cursor:pointer;">
+    <div class="footer"><img src="voltar.png" class="btn-voltar-pequeno" id="closeChallenges" alt="Voltar"></div>
+  </div>
+  <canvas id="game"></canvas>
+  <audio id="bgMusic" src="maislegal.mp3" loop></audio>
+  <audio id="shootSound" src="sonoro.mp3"></audio>
+  <script>
+/* =======================
+  Galaxy Blaster 2.2 - GAME SCRIPT (customizado)
+  ======================= */
+
+// Para melhor experiência, coloque todas as imagens e sons do jogo (logo.png, start.png, alien1.png, alienatirador.png, boss.png, boss1.png, boss2.png, nave1.png, nave2.png, nave3.png, recompensaboss.png, recompensaaboss1.png, recompensaboss2.png, maislegal.mp3, sonoro.mp3, moeda.png, explossion.mp4, aura.png, bossdesafio.png, recompensadesafio1.png, desafios.png, desafio1.png, etc.) na mesma pasta do index.html!
+
+(function(){
+  // ===== VARIÁVEIS E CONSTANTES =====
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+  addEventListener('resize', resize); resize();
+
+  // === Estado do jogo
+  let gameState = 'telaInicial';
+  let selectedBackground = null;
+  let musicOn = true;
+  let effectsOn = true;
+  let paused = false;
+  let score = 0, kills = 0, lives = 3;
+  let coinsTotal = 0, coinsSession = 0;
+  let defeatedBosses = [false, false, false];
+  let desafioVencido = false;
+  let desafioLiberado = false;
+  let ownedShips = new Set();
+  let selectedShipId = 'nave1';
+  let damage = 1, extraProjectiles = 0, fireDelayBase = 0.25, fireDelay = fireDelayBase, fireBuffs = [];
+  let shieldUntil = 0, invincibleUntil = 0;
+  let lastTime = performance.now(), elapsedGame = 0;
+  let spawnInterval = 1000, spawnAccumulator = 0;
+  let boss = null, bossLevel = 0;
+  let bossWarned = [false, false, false], bossSpawned = [false, false, false];
+  let bossWarningActive = false, bossResultActive = false;
+  let bossAttackTimers = { guided: 0, burst: 0 };
+  let currentLevel = 1;
+  let bgImage = new Image();
+  let desafioTimeout = null;
+
+  // === Assets
+  const shipImg = new Image();
+  const enemyImg = new Image(); enemyImg.src = 'alien1.png';
+  const atiradorImg = new Image(); atiradorImg.src = 'alienatirador.png';
+  const vidaImg = new Image(); vidaImg.src = 'vida.png';
+  const bossImgs = [ new Image(), new Image(), new Image() ];
+  bossImgs[0].src = 'boss.png'; bossImgs[1].src = 'boss1.png'; bossImgs[2].src = 'boss2.png';
+  const powerImgs = {
+    atkspd: (()=>{const i=new Image(); i.src='poder.png'; return i;})(),
+    multshot: (()=>{const i=new Image(); i.src='poder1.png'; return i;})(),
+    shield: (()=>{const i=new Image(); i.src='poder2.png'; return i;})(),
+    dmg: (()=>{const i=new Image(); i.src='poder3.png'; return i;})(),
+  };
+  const bgMusic = document.getElementById('bgMusic');
+  const shootSound = document.getElementById('shootSound');
+
+  // === Constantes do drop por nível
+  const DROP_CHANCES = [0.40, 0.20, 0.10];
+  function getDropChance(){
+  if(currentLevel == 1) return 0.30;
+  if(currentLevel == 2) return 0.15;
+  return 0.10;
+}
+
+  // === Naves
+  const SHIPS_ALL = [
+    { id: 'nave1', name: 'Estrela da Morte', image: 'nave1.png', owned: true, price: 0 },
+    { id: 'nave2', name: 'Falcon', image: 'nave2.png', owned: false, price: 200 },
+    { id: 'nave3', name: 'Spacecraft', image: 'nave3.png', owned: false, price: 1000 },
+    { id: 'boss1', name: 'Executor', image: 'recompensaboss.png', owned: false, price: null, bossLevel: 1, unlockText: 'Derrote o Primeiro Chefão!' },
+    { id: 'boss2', name: 'Destroyer', image: 'recompensaaboss1.png', owned: false, price: null, bossLevel: 2, unlockText: 'Derrote o Segundo Chefão!' },
+    { id: 'boss3', name: 'Destruidor Estelar', image: 'recompensaboss2.png', owned: false, price: null, bossLevel: 3, unlockText: 'Derrote o Terceiro Chefe!' },
+    { id: 'imperador', name: 'Imperador', image: 'recompensadesafio1.png', owned: false, price: null, desafio: true, unlockText: 'Vença o DESAFIO!!!' },
+  ];
+
+  // === Boss configs
+  const bossConfigs = [
+    { name: "Executor", img: bossImgs[0], vida: 50, tempo: 60, aviso: "Boss Executor em 10 segundos", naveId: 'boss1', proxBtn: true, nivelMsg: "Nível fácil! Você ganhou recompensas no seu inventário.", guided: false, burst: false },
+    { name: "Destroyer", img: bossImgs[1], vida: 100, tempo: 60, aviso: "Boss Destroyer em 10 segundos", naveId: 'boss2', proxBtn: true, nivelMsg: "Nível médio! Você ganhou recompensa no seu inventário.", guided: true, burst: false },
+    { name: "Destruidor Estelar", img: bossImgs[2], vida: 200, tempo: 60, aviso: "Boss Destruidor Estelar em 10 segundos", naveId: 'boss3', proxBtn: false, nivelMsg: "Parabéns! Você passou do nível impossível, recompensa no seu inventário.", guided: true, burst: true }
+  ];
+
+  // ===== ENTIDADES DO JOGO =====
+  const player = { x: 0, y: 0, w: 50, h: 50, speed: 420, radius: 22, hasAura: false };
+
+  const bullets = [];
+  const enemies = [];
+  const enemyBullets = [];
+  const powerups = [];
+
+  // ======= UTILS =======
+  const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+  const rand = (a=1,b=0)=>Math.random()*(a-b)+b;
+  const chance = (p)=>Math.random()<p;
+
+  // ====== FUNÇÕES DE DESENHO ======
+  function drawShip(x,y){
+    const now = performance.now();
+    if(player.hasAura){
+      let auraImg = window._auraImg;
+      if(!auraImg){
+        auraImg = new Image();
+        auraImg.src = 'aura.png';
+        window._auraImg = auraImg;
+      }
+      ctx.save();
+      ctx.globalAlpha = 0.65;
+      ctx.drawImage(auraImg, x-player.w/2-12, y-player.h/2-12, player.w+24, player.h+24);
+      ctx.restore();
+    }
+    if (now < invincibleUntil) {
+      const phase = Math.floor((invincibleUntil - now)/120);
+      ctx.save();
+      ctx.globalAlpha = (phase % 2 === 0) ? 0.35 : 1;
+      ctx.drawImage(shipImg, x - player.w/2, y - player.h/2, player.w, player.h);
+      ctx.restore();
+    } else {
+      ctx.drawImage(shipImg, x - player.w/2, y - player.h/2, player.w, player.h);
+    }
+  }
+  function drawEnemy(e){
+    if(e.isAtirador) ctx.drawImage(atiradorImg, e.x - e.w/2, e.y - e.h/2, e.w, e.h);
+    else ctx.drawImage(enemyImg, e.x - e.w/2, e.y - e.h/2, e.w, e.h);
+    drawEnemyHpBar(e);
+  }
+  function drawEnemyHpBar(e){
+    const barW = e.w; const barH = 6; const x = e.x - barW/2; const y = e.y - e.h/2 - 10;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(x, y, barW, barH);
+    const ratio = Math.max(0, Math.min(1, e.hp / e.maxHp));
+    ctx.fillStyle = '#0f0'; ctx.fillRect(x, y, barW * ratio, barH);
+    ctx.strokeStyle = '#222'; ctx.strokeRect(x, y, barW, barH);
+  }
+  function drawBoss(bossObj){
+    if(!bossObj || !bossObj.img) return;
+    ctx.drawImage(bossObj.img, bossObj.x-bossObj.w/2, bossObj.y-bossObj.h/2, bossObj.w, bossObj.h);
+    const barW = bossObj.w, barH = 18, x = bossObj.x-barW/2, y = bossObj.y-bossObj.h/2-26;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(x, y, barW, barH);
+    const ratio = Math.max(0, Math.min(1, bossObj.hp / bossObj.maxHp));
+    ctx.fillStyle = '#f44';
+    ctx.fillRect(x, y, barW * ratio, barH);
+    ctx.strokeStyle = '#fff';
+    ctx.strokeRect(x, y, barW, barH);
+  }
+  function drawPowerup(p){
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.drawImage(powerImgs[p.type], p.x-18, p.y-18, 36, 36);
+    ctx.restore();
+  }
+  function drawFrameOnly(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawBackground();
+    if(gameState === 'jogoRodando' || gameState==='gameOver' || gameState === 'desafioRodando'){
+      drawShip(player.x,player.y);
+      for(const b of bullets) { ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,2*Math.PI); ctx.fillStyle='#0cf'; ctx.fill(); }
+      for(const e of enemies) drawEnemy(e);
+      for(const eb of enemyBullets){ ctx.beginPath(); ctx.arc(eb.x,eb.y,eb.r,0,2*Math.PI); ctx.fillStyle=eb.guided?'#ff0':'#f00'; ctx.fill(); }
+      for(const p of powerups) drawPowerup(p);
+      if(boss) drawBoss(boss);
+    }
+  }
+  function drawBackground() {
+    if(gameState !== 'jogoRodando' && gameState !== 'desafioRodando') return;
+    if (!bgImage.width || !bgImage.height) return;
+    const imgRatio = bgImage.width / bgImage.height;
+    const canvasRatio = canvas.width / canvas.height;
+    let drawWidth, drawHeight, offsetX, offsetY;
+    if (imgRatio > canvasRatio) { drawHeight = canvas.height; drawWidth = drawHeight * imgRatio; offsetX = (canvas.width - drawWidth) / 2; offsetY = 0; }
+    else { drawWidth = canvas.width; drawHeight = drawWidth / imgRatio; offsetX = 0; offsetY = (canvas.height - drawHeight) / 2; }
+    ctx.drawImage(bgImage, offsetX, offsetY, drawWidth, drawHeight);
+  }
+
+  // ====== INPUT ======
+  const keys = {left:false,right:false,up:false,down:false,fire:false};
+  addEventListener('keydown',e=>{
+    if(e.code==='ArrowLeft' || e.code==='KeyA') keys.left=true;
+    if(e.code==='ArrowRight'|| e.code==='KeyD') keys.right=true;
+    if(e.code==='ArrowUp'   || e.code==='KeyW') keys.up=true;
+    if(e.code==='ArrowDown' || e.code==='KeyS') keys.down=true;
+    if(e.code==='Space') keys.fire=true;
+  });
+  addEventListener('keyup',e=>{
+    if(e.code==='ArrowLeft' || e.code==='KeyA') keys.left=false;
+    if(e.code==='ArrowRight'|| e.code==='KeyD') keys.right=false;
+    if(e.code==='ArrowUp'   || e.code==='KeyW') keys.up=false;
+    if(e.code==='ArrowDown' || e.code==='KeyS') keys.down=false;
+    if(e.code==='Space') keys.fire=false;
+  });
+  let dragging = false;
+  canvas.addEventListener('pointerdown', (e) => { dragging = true; keys.fire = true; movePlayerTo(e); });
+  canvas.addEventListener('pointermove', (e) => { if (dragging) movePlayerTo(e); });
+  canvas.addEventListener('pointerup',   () => { dragging = false; keys.fire = false; });
+  canvas.addEventListener('pointercancel',() => { dragging = false; keys.fire = false; });
+  function movePlayerTo(e){ const r=canvas.getBoundingClientRect(); const x=e.clientX-r.left; const y=e.clientY-r.top; player.x = clamp(x, 25, canvas.width-25); player.y = clamp(y, 25, canvas.height-25); }
+
+  // ===== COLISÕES =====
+  function aabbCollision(ax,ay,aw,ah,bx,by,bw,bh){ return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by; }
+  function circleHit(ax,ay,ar,bx,by,br){ const dx=ax-bx, dy=ay-by; return (dx*dx+dy*dy) <= (ar+br)*(ar+br); }
+  function circleRectHit(cx, cy, cr, rx, ry, rw, rh){
+    const closestX = Math.max(rx, Math.min(cx, rx + rw));
+    const closestY = Math.max(ry, Math.min(cy, ry + rh));
+    const dx = cx - closestX;
+    const dy = cy - closestY;
+    return (dx*dx + dy*dy) <= cr*cr;
+  }
+
+  // ==== TIROS ====
+  function recalcFireDelay(){
+    const active = fireBuffs.filter(b=>b.expiresAt > performance.now());
+    fireBuffs = active;
+    const mult = active.reduce((m,b)=>m*b.multiplier, 1);
+    fireDelay = Math.max(0.06, fireDelayBase * mult);
+  }
+  let lastShotAt = 0;
+  function shoot(){
+    const now = performance.now();
+    if(now - lastShotAt < fireDelay*1000) return;
+    lastShotAt = now;
+    const totalShots = 1 + extraProjectiles;
+    for(let i=0;i<totalShots;i++){
+      const spread = (totalShots>1)? ((i - (totalShots-1)/2) * 0.12) : 0;
+      const speed = -520;
+      bullets.push({ x: player.x, y: player.y-25, vy: speed*Math.cos(spread), dx: Math.sin(spread)*300, dy: speed, r: 4, damage: damage });
+    }
+    if(effectsOn){ shootSound.currentTime = 0; shootSound.play(); }
+  }
+
+  // ==== Boss, Chefões & Níveis ====
+  function showBossWarning(msg){
+    bossWarningActive = true;
+    const el = document.getElementById('bossWarn');
+    el.textContent = msg;
+    el.style.display = 'flex';
+    if(window.bossWarningTimeout) clearTimeout(window.bossWarningTimeout);
+    window.bossWarningTimeout = setTimeout(()=>{
+      el.style.display = 'none';
+      bossWarningActive = false;
+    }, 2000);
+  }
+  function spawnBoss(level){
+    const cfg = bossConfigs[level-1];
+    boss = {
+      img: cfg.img,
+      x: canvas.width/2,
+      y: -cfg.img.height/2 || -100,
+      w: 180,
+      h: 180,
+      vy: 50 - level*5,
+      hp: cfg.vida,
+      maxHp: cfg.vida,
+      level: level
+    };
+    bossLevel = level;
+    bossAttackTimers = { guided: 0, burst: 0 };
+  }
+  function spawnBossDesafio(){
+    boss = {
+      img: (()=>{let i=new Image();i.src='bossdesafio.png';return i;})(),
+      x: canvas.width/2,
+      y: -90,
+      w: 180,
+      h: 180,
+      vy: 40,
+      hp: 300,
+      maxHp: 300,
+      level: 99, // especial
+      desafioBoss: true
+    };
+    bossAttackTimers = { guided: 0, burst: 0 };
+  }
+  function defeatBoss(level){
+  addCoins(200);
+    defeatedBosses[level-1] = true;
+    saveProgress();
+    // toca som de explosão
+    let explosao = document.createElement('audio');
+    explosao.src = 'explossion.mp4';
+    explosao.play();
+    boss = null; // remove o boss imediatamente
+    showBossResult(level, true);
+  }
+  function defeatBossDesafio(){
+  addCoins(500);
+    desafioVencido = true;
+    desafioLiberado = true;
+    ownedShips.add('imperador');
+    saveProgress();
+    showDesafioResult(true);
+  }
+  function bossFail(level){
+    showBossResult(level, false);
+  }
+  function bossFailDesafio(){
+    showDesafioResult(false);
+  }
+  function showBossResult(level, win){
+    bossResultActive = true;
+    const el = document.getElementById('bossResult');
+    el.innerHTML = '';
+    if(win){
+      const cfg = bossConfigs[level-1];
+      el.innerHTML = `<div>${cfg.nivelMsg}</div>`;
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      if(cfg.proxBtn){
+        const prox = document.createElement('img');
+        prox.src = 'prox.png';
+        prox.alt = 'Próximo Nível';
+        prox.onclick = ()=>{
+          el.style.display = 'none';
+          bossResultActive = false;
+          startNextLevel(level+1);
+        };
+        actions.appendChild(prox);
+      }
+      const menu = document.createElement('img');
+      menu.src = 'menu.png';
+      menu.alt = 'Menu Principal';
+      menu.onclick = ()=>{
+        el.style.display = 'none';
+        bossResultActive = false;
+        gameState = 'mainMenu';
+        show('mainMenu');
+      };
+      actions.appendChild(menu);
+      el.appendChild(actions);
+    } else {
+      el.innerHTML = `<div>O chefão passou a tela!<br>Tente novamente.</div>`;
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const again = document.createElement('img');
+      again.src = 'novamente.png';
+      again.alt = 'Tente Novamente';
+      again.onclick = ()=>{
+        el.style.display = 'none';
+        bossResultActive = false;
+        startNextLevel(currentLevel);
+      };
+      actions.appendChild(again);
+      const menu = document.createElement('img');
+      menu.src = 'menu.png';
+      menu.alt = 'Menu Principal';
+      menu.onclick = ()=>{
+        el.style.display = 'none';
+        bossResultActive = false;
+        gameState = 'mainMenu';
+        show('mainMenu');
+      };
+      actions.appendChild(menu);
+      el.appendChild(actions);
+    }
+    el.style.display = 'flex';
+    hud.style.display = 'none';
+    updateChallengesButton();
+  }
+  function showDesafioResult(win){
+    bossResultActive = true;
+    const el = document.getElementById('bossResult');
+    el.innerHTML = '';
+    if(win){
+      el.innerHTML = `<div>Parabéns, você venceu o desafio! Recompensa no seu inventário.</div>`;
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const menu = document.createElement('img');
+      menu.src = 'menu.png';
+      menu.alt = 'Menu Principal';
+      menu.onclick = ()=>{
+        el.style.display = 'none';
+        bossResultActive = false;
+        gameState = 'mainMenu';
+        show('mainMenu');
+      };
+      actions.appendChild(menu);
+      el.appendChild(actions);
+    }else{
+      el.innerHTML = `<div>Você perdeu o desafio!<br>Tente novamente.</div>`;
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const again = document.createElement('img');
+      again.src = 'novamente.png';
+      again.alt = 'Tente Novamente';
+      again.onclick = ()=>{
+        el.style.display = 'none';
+        bossResultActive = false;
+        startDesafio1();
+      };
+      actions.appendChild(again);
+      const menu = document.createElement('img');
+      menu.src = 'menu.png';
+      menu.alt = 'Menu Principal';
+      menu.onclick = ()=>{
+        el.style.display = 'none';
+        bossResultActive = false;
+        gameState = 'mainMenu';
+        show('mainMenu');
+      };
+      actions.appendChild(menu);
+      el.appendChild(actions);
+    }
+    el.style.display = 'flex';
+    hud.style.display = 'none';
+    updateChallengesButton();
+  }
+  function startNextLevel(level){
+    currentLevel = level;
+    score = 0; kills = 0; lives = 3; coinsSession = 0; updateHud(); updateLivesHud();
+    damage = 1; extraProjectiles = 0; fireDelayBase = 0.25; fireDelay = fireDelayBase; fireBuffs = []; shieldUntil = 0; lastShotAt = 0; invincibleUntil = 0;
+    elapsedGame = 0; spawnInterval = 1000; spawnAccumulator = 0;
+    bullets.length = 0; enemies.length = 0; enemyBullets.length = 0; powerups.length = 0;
+    player.x = canvas.width/2; player.y = canvas.height - 100;
+    paused = false; hud.style.display = 'flex';
+    bossWarned = [false, false, false];
+    bossSpawned = [false, false, false];
+    boss = null; bossLevel = 0;
+    bossAttackTimers = { guided: 0, burst: 0 };
+    gameState = 'jogoRodando';
+  }
+
+  // ====== LOOP PRINCIPAL ======
+  function loop(t){
+    requestAnimationFrame(loop);
+    const dt = Math.min(0.033, (t - lastTime)/1000);
+    lastTime = t;
+    if(bossWarningActive || bossResultActive) return;
+    if(gameState !== 'jogoRodando' && gameState !== 'desafioRodando') return drawFrameOnly();
+
+    if(!paused){
+      elapsedGame += dt;
+
+      // Chefão do nível atual
+      if(gameState === 'jogoRodando'){
+        let idx = currentLevel-1;
+        if(!bossWarned[idx] && elapsedGame >= bossConfigs[idx].tempo-10){
+          showBossWarning(bossConfigs[idx].aviso);
+          bossWarned[idx] = true;
+        }
+        if(!bossSpawned[idx] && elapsedGame >= bossConfigs[idx].tempo){
+          spawnBoss(currentLevel);
+          bossSpawned[idx] = true;
+        }
+      }
+
+      // Desafio: boss aparece após 60s
+      if(gameState === 'desafioRodando' && !boss && elapsedGame >= 60 && !bossSpawned[0]){
+        spawnBossDesafio();
+        bossSpawned[0] = true;
+      }
+
+      // Input movimento
+      let dx=0, dy=0; if(keys.left) dx -= 1; if(keys.right) dx += 1; if(keys.up) dy -= 1; if(keys.down) dy += 1;
+      const len = Math.hypot(dx,dy)||1;
+      player.x = clamp(player.x + (dx/len)*player.speed*dt, 25, canvas.width-25);
+      player.y = clamp(player.y + (dy/len)*player.speed*dt, 25, canvas.height-25);
+
+      if(keys.fire) shoot();
+      recalcFireDelay();
+
+      for(const b of bullets){ b.y += b.vy*dt; b.x += (b.dx||0)*dt; }
+      for(const e of enemies){ e.y += e.vy*dt; enemyTryShoot(e, dt); }
+      for(const eb of enemyBullets){ eb.y += eb.vy*dt; eb.x += (eb.dx||0)*dt; }
+      for(const p of powerups){ p.y += p.vy*dt; }
+
+      // Boss logic
+      if(boss){
+        boss.y += boss.vy*dt;
+
+        // Desafio boss (Imperador)
+        if(boss.desafioBoss){
+          bossAttackTimers.guided += dt;
+          if(bossAttackTimers.guided >= 1){
+            bossAttackTimers.guided = 0;
+            // Tiro teleguiado
+            let dx = player.x-boss.x, dy = player.y-boss.y, d = Math.hypot(dx,dy)||1;
+            let speed = 240, vx = dx/d*speed, vy = dy/d*speed;
+            enemyBullets.push({ x: boss.x, y: boss.y+boss.h/2, vy: vy, dx: vx, r: 7, guided: true });
+          }
+          bossAttackTimers.burst += dt;
+          if(bossAttackTimers.burst >= 3){
+            bossAttackTimers.burst = 0;
+            // Rajada de 10 projéteis retos (não teleguiados)
+            for(let i=0;i<10;i++){
+              let angle = Math.PI/2 + (i-4.5)*0.13;
+              let speed = 340;
+              enemyBullets.push({
+                x: boss.x,
+                y: boss.y+boss.h/2,
+                vy: Math.sin(angle)*speed,
+                dx: Math.cos(angle)*speed,
+                r: 8,
+                guided: false
+              });
+            }
+          }
+          // Colisão balas no boss
+          for(let i=bullets.length-1;i>=0;i--){
+            const b=bullets[i];
+            if(circleRectHit(b.x, b.y, b.r, boss.x-boss.w/2, boss.y-boss.h/2, boss.w, boss.h)){
+              boss.hp -= (b.damage||1);
+              bullets.splice(i,1);
+              if(boss.hp<=0){
+                defeatBossDesafio();
+                boss = null;
+                break;
+              }
+            }
+          }
+          // Colisão jogador x boss
+          if(aabbCollision(player.x-player.w/2, player.y-player.h/2, player.w, player.h, boss.x-boss.w/2,boss.y-boss.h/2,boss.w,boss.h)){
+            loseLife();
+          }
+          // Se boss sai da tela
+          if(boss && boss.y - boss.h/2 > canvas.height){
+            bossFailDesafio();
+            boss = null;
+          }
+        }
+        else {
+          // Normal bosses
+          if(bossConfigs[currentLevel-1].guided){
+            bossAttackTimers.guided += dt;
+            if(bossAttackTimers.guided >= 2){
+              bossAttackTimers.guided = 0;
+              // Tiro teleguiado
+              let dx = player.x-boss.x, dy = player.y-boss.y, d = Math.hypot(dx,dy)||1;
+              let speed = 220, vx = dx/d*speed, vy = dy/d*speed;
+              enemyBullets.push({ x: boss.x, y: boss.y+boss.h/2, vy: vy, dx: vx, r: 7, guided: true });
+            }
+          }
+          if(bossConfigs[currentLevel-1].burst){
+            bossAttackTimers.burst += dt;
+            if(bossAttackTimers.burst >= 5){
+              bossAttackTimers.burst = 0;
+              // Rajada de 10 projéteis retos (não teleguiados)
+              for(let i=0;i<10;i++){
+                let angle = Math.PI/2 + (i-4.5)*0.13;
+                let speed = 320;
+                enemyBullets.push({
+                  x: boss.x,
+                  y: boss.y+boss.h/2,
+                  vy: Math.sin(angle)*speed,
+                  dx: Math.cos(angle)*speed,
+                  r: 8,
+                  guided: false
+                });
+              }
+            }
+          }
+          // Colisão balas no boss
+          for(let i=bullets.length-1;i>=0;i--){
+            const b=bullets[i];
+            if(circleRectHit(b.x, b.y, b.r, boss.x-boss.w/2, boss.y-boss.h/2, boss.w, boss.h)){
+              boss.hp -= (b.damage||1);
+              bullets.splice(i,1);
+              if(boss.hp<=0){
+                defeatBoss(currentLevel);
+                boss = null;
+                break;
+              }
+            }
+          }
+          // Colisão jogador x boss
+          if(aabbCollision(player.x-player.w/2, player.y-player.h/2, player.w, player.h, boss.x-boss.w/2,boss.y-boss.h/2,boss.w,boss.h)){
+            loseLife();
+          }
+          // Se boss sai da tela
+          if(boss && boss.y - boss.h/2 > canvas.height){
+            bossFail(currentLevel);
+            boss = null;
+          }
+        }
+      }
+
+      // Spawns
+      if(!boss) {
+        spawnAccumulator += dt*1000; if(spawnAccumulator >= spawnInterval){ spawnAccumulator = 0; spawnEnemy(); }
+      }
+
+      // Colisões: balas do player (círculo) x inimigos (retângulo)
+      for(let i=bullets.length-1;i>=0;i--){
+        const b=bullets[i];
+        let hit = false;
+        for(let j=enemies.length-1;j>=0;j--){
+          const e=enemies[j];
+          if(circleRectHit(b.x, b.y, b.r, e.x-e.w/2, e.y-e.h/2, e.w, e.h)){
+            e.hp -= (b.damage||1);
+            bullets.splice(i,1); hit = true;
+            if(e.hp<=0){
+              enemies.splice(j,1); score += 10; kills += 1; tryDropPower(e); addCoins(1); updateHud();
+            }
+            break;
+          }
+        }
+        if(hit) continue;
+      }
+      // Colisão jogador x inimigo
+      for(let j=enemies.length-1;j>=0;j--){
+        const e = enemies[j];
+        if(aabbCollision(player.x-player.w/2, player.y-player.h/2, player.w, player.h, e.x-e.w/2,e.y-e.h/2,e.w,e.h)){
+          loseLife();
+        }
+      }
+      // Colisão jogador x balas inimigas
+      for(let i=enemyBullets.length-1;i>=0;i--){
+        const eb = enemyBullets[i];
+        if(circleHit(player.x,player.y, player.radius, eb.x,eb.y, eb.r)){
+          enemyBullets.splice(i,1);
+          loseLife();
+        }
+      }
+      // Coleta de powerups
+      for(let i=powerups.length-1;i>=0;i--){
+        const p = powerups[i];
+        if(circleHit(player.x,player.y, player.radius, p.x,p.y, 16)){
+          applyPower(p.type);
+          powerups.splice(i,1);
+        }
+      }
+      // Limpeza fora de tela
+      for(let i=bullets.length-1;i>=0;i--){ if(bullets[i].y < -20) bullets.splice(i,1); }
+      for(let i=enemies.length-1;i>=0;i--){ if(enemies[i].y > canvas.height+40) enemies.splice(i,1); }
+      for(let i=enemyBullets.length-1;i>=0;i--){ if(enemyBullets[i].y > canvas.height+20 || enemyBullets[i].x < -40 || enemyBullets[i].x > canvas.width+40) enemyBullets.splice(i,1); }
+      for(let i=powerups.length-1;i>=0;i--){ if(powerups[i].y > canvas.height+20) powerups.splice(i,1); }
+    }
+    drawFrameOnly();
+  }
+
+  // ==== Drop e spawn de inimigos ====
+  function tryDropPower(e){
+    if(!chance(getDropChance())) return;
+    const types = ['atkspd','multshot','shield','dmg'];
+    const type = types[Math.floor(rand(types.length))];
+    powerups.push({ x:e.x, y:e.y, vy: 80, type });
+  }
+  function spawnEnemy(){
+    const isAtirador = Math.random() < 0.25;
+    const extraHp = Math.floor(elapsedGame / 20);
+    const baseHp = 2 + extraHp;
+    const w=50,h=50;
+    const e = {
+      x: rand(40, canvas.width-40), y: -30, vy: rand(60, 110), w, h,
+      hp: baseHp, maxHp: baseHp,
+      isAtirador: isAtirador,
+      shooter: isAtirador,
+      shootTimer: 0
+    };
+    enemies.push(e);
+  }
+  function enemyTryShoot(e, dt){
+    if(!e.isAtirador) return;
+    e.shootTimer += dt;
+    if(e.shootTimer >= 2){
+      e.shootTimer = 0;
+      enemyBullets.push({ x: e.x, y: e.y + e.h/2, vy: 220, dx: 0, r: 4 });
+    }
+  }
+
+  // ==== Powerups ====
+  function applyPower(type){
+    const now = performance.now();
+    if(type==='atkspd'){ fireBuffs.push({ expiresAt: now + 10000, multiplier: 0.8 }); recalcFireDelay(); }
+    else if(type==='multshot'){ extraProjectiles += 1; }
+    else if(type==='shield'){
+      shieldUntil = now + 5000; // 5 segundos
+      player.hasAura = true;
+      setTimeout(()=>{
+        player.hasAura = false;
+      }, 5000);
+    }
+    else if(type==='dmg'){ damage += 2; }
+  }
+
+  // ==== HUD/UI ====
+  const hud = document.getElementById('hud');
+  const scoreBox = document.getElementById('score');
+  const killsBox = document.getElementById('kills');
+  const livesBox = document.getElementById('lives');
+  const coinsCount = document.getElementById('coinsCount');
+  const mainMenuCoins = document.getElementById('mainMenuCoins');
+  const shopCoins = document.getElementById('shopCoins');
+
+  function updateHud(){ scoreBox.textContent = 'Score: ' + score; killsBox.textContent = 'Kills: ' + kills; coinsCount.textContent = coinsSession; }
+  function updateLivesHud(){ livesBox.innerHTML=''; for(let i=0;i<lives;i++){ const img=document.createElement('img'); img.src='vida.png'; img.alt='Vida'; livesBox.appendChild(img); } }
+  function updateCoinsUI(){ mainMenuCoins.textContent = coinsTotal; shopCoins.textContent = coinsTotal; }
+  function addCoins(n){ coinsSession += n; coinsTotal += n; saveProgress(); updateCoinsUI(); }
+  function loseLife(){
+    const now = performance.now();
+    if(now < shieldUntil) return; // shield ativo = não perde vida
+    if(now < invincibleUntil) return;
+    lives -= 1; invincibleUntil = now + 1300;
+    updateLivesHud();
+    if(lives <= 0){ triggerGameOver(); }
+  }
+  function triggerGameOver(){
+    gameState = 'gameOver';
+    document.getElementById('finalScore').textContent = 'Score: ' + score;
+    document.getElementById('finalKills').textContent = 'Kills: ' + kills;
+    document.getElementById('gameOver').style.display = 'flex';
+  }
+
+  // ==== Persistência ====
+  function loadProgress(){
+    try{
+      const c = localStorage.getItem('gb_coins'); coinsTotal = c? parseInt(c,10):0;
+      const inv = JSON.parse(localStorage.getItem('gb_ownedShips')||'null');
+      ownedShips = new Set(inv || ['nave1']);
+      selectedShipId = localStorage.getItem('gb_selectedShip') || 'nave1';
+      const bosses = JSON.parse(localStorage.getItem('gb_defeatedBosses')||'null');
+      defeatedBosses = bosses || [false, false, false];
+      desafioVencido = JSON.parse(localStorage.getItem('gb_desafioVencido')||'false');
+      desafioLiberado = JSON.parse(localStorage.getItem('gb_desafioLiberado')||'false');
+      if(desafioVencido){ ownedShips.add('imperador'); }
+    }catch(e){ coinsTotal = 0; ownedShips = new Set(['nave1']); selectedShipId = 'nave1'; defeatedBosses = [false,false,false]; }
+    const ship = SHIPS_ALL.find(s=>s.id===selectedShipId) || SHIPS_ALL[0];
+    shipImg.src = ship.image;
+    updateCoinsUI();
+  }
+  function saveProgress(){
+    try{
+      localStorage.setItem('gb_coins', String(coinsTotal));
+      localStorage.setItem('gb_ownedShips', JSON.stringify(Array.from(ownedShips)));
+      localStorage.setItem('gb_selectedShip', selectedShipId);
+      localStorage.setItem('gb_defeatedBosses', JSON.stringify(defeatedBosses));
+      localStorage.setItem('gb_desafioVencido', JSON.stringify(desafioVencido));
+      localStorage.setItem('gb_desafioLiberado', JSON.stringify(desafioLiberado));
+    }catch(e){}
+  }
+
+  // ==== Loja & Inventário ====
+  const shopGrid = document.getElementById('shopGrid');
+  function buildShop(){
+    shopGrid.innerHTML = '';
+    const items = SHIPS_ALL.filter(s=>{
+      if(s.price===null && s.bossLevel){ return !defeatedBosses[s.bossLevel-1]; }
+      if(s.desafio) return !ownedShips.has(s.id);
+      return !ownedShips.has(s.id) && s.price>0;
+    });
+    if(items.length===0){
+      const msg = document.createElement('div');
+      msg.style.color = '#ccc'; msg.style.margin = '10px 0'; msg.textContent = 'Atualizações em breve';
+      shopGrid.appendChild(msg);
+      return;
+    }
+    for(const s of items){
+      const card = document.createElement('div'); card.className = 'card';
+      const img = document.createElement('img'); img.className='ship'; img.src=s.image; img.alt=s.name; card.appendChild(img);
+      const name = document.createElement('div'); name.textContent = s.name; card.appendChild(name);
+      if(s.price===null && s.bossLevel){
+        const locked = document.createElement('div');
+        locked.className = 'locked-info';
+        locked.innerHTML = s.unlockText;
+        card.appendChild(locked);
+      } else if(s.desafio){
+        const locked = document.createElement('div');
+        locked.className = 'locked-info';
+        locked.innerHTML = desafioVencido ? "" : s.unlockText;
+        card.appendChild(locked);
+      } else {
+        const price = document.createElement('div'); price.className='price'; price.innerHTML = `<img src="moeda.png" alt="Moeda"> <span>${s.price}</span>`; card.appendChild(price);
+        const actions = document.createElement('div'); actions.className='actions';
+        const buy = document.createElement('img'); buy.src='comprar.png'; buy.alt='Comprar';
+        buy.onclick = ()=>{
+          if(coinsTotal >= s.price){ coinsTotal -= s.price; ownedShips.add(s.id); saveProgress(); updateCoinsUI(); buildShop(); buildInventory(); } else { alert("Você não tem moedas suficientes."); }
+        };
+        actions.appendChild(buy); card.appendChild(actions);
+      }
+      shopGrid.appendChild(card);
+    }
+  }
+  const inventoryGrid = document.getElementById('inventoryGrid');
+  function buildInventory(){
+    inventoryGrid.innerHTML = '';
+    const items = SHIPS_ALL.filter(s=>{
+      if(s.price===null && s.bossLevel){ return defeatedBosses[s.bossLevel-1]; }
+      if(s.desafio) return desafioVencido;
+      return ownedShips.has(s.id);
+    });
+    for(const s of items){
+      const card = document.createElement('div'); card.className = 'card';
+      const img = document.createElement('img'); img.className='ship'; img.src=s.image; img.alt=s.name; card.appendChild(img);
+      const name = document.createElement('div'); name.textContent = s.name; card.appendChild(name);
+      const actions = document.createElement('div'); actions.className = 'actions';
+      const sel = document.createElement('img'); sel.src='selecionar.png'; sel.alt='Selecionar';
+      sel.onclick = ()=>{ selectedShipId = s.id; shipImg.src = s.image; saveProgress(); };
+      actions.appendChild(sel); card.appendChild(actions); inventoryGrid.appendChild(card);
+    }
+  }
+
+  // ==== Navegação/Telas ====
+  function show(id){
+    hideAll();
+    document.getElementById(id).style.display = 'flex';
+    if(id === 'mainMenu') updateChallengesButton();
+  }
+  function hideAll(){
+    for(const id of ['menu','mainMenu','cenarioMenu','creditos','gameOver','configMenu','shop','inventory','bossWarn','bossResult','challengesMenu']){
+      const el=document.getElementById(id); if(el) el.style.display='none';
+    }
+    document.getElementById('configBtn').style.display='none';
+    hud.style.display='none';
+  }
+
+  // ==== Inicialização de navegação ====
+  document.getElementById('toMainMenu').onclick = () => { show('mainMenu'); if(musicOn){ bgMusic.play(); } updateCoinsUI(); };
+  document.getElementById('goScenario').onclick = () => { show('cenarioMenu'); };
+  document.getElementById('openShop').onclick = () => { buildShop(); updateCoinsUI(); show('shop'); };
+  document.getElementById('openInventory').onclick = () => { buildInventory(); show('inventory'); };
+  document.getElementById('openCredits').onclick = () => { show('creditos'); };
+  document.getElementById('creditosVoltar').onclick = () => { show('mainMenu'); };
+  document.querySelectorAll('#cenarioMenu img[data-cenario]').forEach(img=>{
+    img.onclick = () => {
+      document.querySelectorAll('#cenarioMenu img[data-cenario]').forEach(i => i.classList.remove('selected'));
+      img.classList.add('selected');
+      selectedBackground = img.getAttribute('data-cenario');
+    };
+  });
+  function startScenario(){
+    if(!selectedBackground) return;
+    document.getElementById('cenarioMenu').style.display = 'none';
+    document.getElementById('configBtn').style.display = 'block';
+    hud.style.display = 'flex';
+    bgImage.src = selectedBackground;
+    currentLevel = 1;
+    startNextLevel(1);
+  }
+  document.getElementById('startFromCenario').onclick = startScenario;
+  document.getElementById('cenarioBack').onclick = () => { show('mainMenu'); };
+  const configBtn = document.getElementById('configBtn');
+  const configMenu = document.getElementById('configMenu');
+  configBtn.onclick = () => { if(gameState !== 'jogoRodando' && gameState !== 'desafioRodando') return; paused = !paused; configMenu.style.display = paused ? 'flex' : 'none'; };
+  document.getElementById('toggleMusic').onclick = () => { musicOn = !musicOn; if(musicOn) bgMusic.play(); else bgMusic.pause(); maceteClick('music'); };
+  document.getElementById('toggleEffects').onclick = () => { effectsOn = !effectsOn; maceteClick('effect'); };
+  document.getElementById('creditosBtnImg').onclick = () => { show('creditos'); };
+  document.getElementById('configContinue').onclick = () => { paused = false; configMenu.style.display = 'none'; };
+  document.getElementById('configToMenu').onclick = () => { paused = false; gameState = 'menuPrincipal'; show('mainMenu'); };
+  document.getElementById('tryAgain').onclick = () => { document.getElementById('gameOver').style.display = 'none'; startNextLevel(currentLevel); };
+  document.getElementById('goMenuFromOver').onclick = () => { document.getElementById('gameOver').style.display = 'none'; gameState = 'menuPrincipal'; show('mainMenu'); };
+  document.getElementById('closeShop').onclick = () => { show('mainMenu'); };
+  document.getElementById('closeInventory').onclick = () => { show('mainMenu'); };
+
+  // ==== Desafios ====
+  function updateChallengesButton(){
+    const btn = document.getElementById('openChallenges');
+    const lock = document.getElementById('lockChallenges');
+    if(defeatedBosses[2] || desafioLiberado){
+      btn.style.pointerEvents = 'auto';
+      btn.style.opacity = 1;
+      lock.style.display = 'none';
+    }else{
+      btn.style.pointerEvents = 'none';
+      btn.style.opacity = 0.5;
+      lock.style.display = 'block';
+    }
+  }
+  document.getElementById('openChallenges').onclick = () => {
+    show('challengesMenu');
+  };
+  document.getElementById('closeChallenges').onclick = () => show('mainMenu');
+  document.getElementById('startDesafio1').onclick = () => {
+    startDesafio1();
+  };
+  function startDesafio1(){
+    document.getElementById('challengesMenu').style.display = 'none';
+    document.getElementById('configBtn').style.display = 'block';
+    hud.style.display = 'flex';
+    bgImage.src = selectedBackground || 'cenario.png';
+    currentLevel = 1;
+    score = 0; kills = 0; lives = 3; coinsSession = 0; updateHud(); updateLivesHud();
+    damage = 1; extraProjectiles = 0; fireDelayBase = 0.25; fireDelay = fireDelayBase; fireBuffs = []; shieldUntil = 0; lastShotAt = 0; invincibleUntil = 0;
+    elapsedGame = 0; spawnInterval = 1000; spawnAccumulator = 0;
+    bullets.length = 0; enemies.length = 0; enemyBullets.length = 0; powerups.length = 0;
+    player.x = canvas.width/2; player.y = canvas.height - 100;
+    paused = false; hud.style.display = 'flex';
+    bossWarned = [false, false, false];
+    bossSpawned = [false, false, false];
+    boss = null; bossLevel = 0;
+    bossAttackTimers = { guided: 0, burst: 0 };
+    gameState = 'desafioRodando';
+    desafioTimeout && clearTimeout(desafioTimeout);
+    // boss imperador entra após 60s, mas já está no loop agora!
+  }
+
+  // ==== Macete para liberar desafios ====
+  let maceteClicks = [];
+  function maceteClick(type){
+    const now = Date.now();
+    maceteClicks.push({type, ts: now});
+    // remove antigos
+    maceteClicks = maceteClicks.filter(c=>now-c.ts < 10000);
+    let musics = maceteClicks.filter(c=>c.type==='music').length;
+    let effects = maceteClicks.filter(c=>c.type==='effect').length;
+    if(musics>=3 && effects>=3){
+      desafioLiberado = true;
+      saveProgress();
+      updateChallengesButton();
+      alert('Macete ativado! Desafios liberados.');
+      maceteClicks = [];
+    }
+  }
+
+  // ==== Inicialização Final ====
+  loadProgress();
+  document.getElementById('menu').style.display = 'flex';
+  requestAnimationFrame(loop);
+
+})();
+  </script>
+
+<!-- Intro Overlay -->
+<div id="intro-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;z-index:9999;">
+    <img id="intro-image" src="entrada.png" style="max-width:80%;max-height:80%;" />
+</div>
+<script>
+window.addEventListener('load', function(){
+  const overlay = document.getElementById('intro-overlay');
+  const img = document.getElementById('intro-image');
+  setTimeout(function(){
+      img.src = 'entrada2.png';
+  }, 5000);
+  setTimeout(function(){
+      overlay.style.display = 'none';
+  }, 10000);
+});
+</script>
+
+</body>
+</html>
